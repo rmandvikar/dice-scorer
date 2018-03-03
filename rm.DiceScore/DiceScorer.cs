@@ -219,28 +219,15 @@ namespace rm.DiceScore
 		public (int, ScoreKind) FullHouse(int[] diceValues)
 		{
 			Validate(diceValues);
-			bool IsFullHouse(int[] diceValueToCountMap)
+			return FullHouseInner(ToCountToDiceValueMap(ToValueCountMap(diceValues)));
+		}
+		internal (int, ScoreKind) FullHouseInner(int[] countToDiceValueMap)
+		{
+			bool IsFullHouse(int[] countToDiceValueMapLocal)
 			{
-				var hasCountOf2 = false;
-				var hasCountOf3 = false;
-				for (int i = 0; i < diceValueToCountMap.Length; i++)
-				{
-					if (diceValueToCountMap[i] == 2)
-					{
-						hasCountOf2 = true;
-					}
-					if (diceValueToCountMap[i] == 3)
-					{
-						hasCountOf3 = true;
-					}
-					if (hasCountOf2 && hasCountOf3)
-					{
-						return true;
-					}
-				}
-				return false;
+				return countToDiceValueMapLocal[2 - 1] > 0 && countToDiceValueMapLocal[3 - 1] > 0;
 			}
-			return (IsFullHouse(ToValueCountMap(diceValues)) ? 25 : 0, ScoreKind.FullHouse);
+			return (IsFullHouse(countToDiceValueMap) ? 25 : 0, ScoreKind.FullHouse);
 		}
 
 		#endregion

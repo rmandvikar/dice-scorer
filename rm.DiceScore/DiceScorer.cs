@@ -56,9 +56,11 @@ namespace rm.DiceScore
 			// pre-computations
 			var diceValueToCountMap = ToValueCountMap(diceValues);
 			var diceValueBitMap = ToValueBitMap(diceValueToCountMap);
+			var countToDiceValueMap = ToCountToDiceValueMap(diceValueToCountMap);
 			var valuesSum = diceValues.Sum();
 			// calculate max score
-			var max = GetMaxScore(diceValues, diceValueToCountMap, diceValueBitMap, valuesSum);
+			var max = GetMaxScore(diceValues,
+				diceValueToCountMap, diceValueBitMap, countToDiceValueMap, valuesSum);
 			return max;
 		}
 
@@ -75,7 +77,7 @@ namespace rm.DiceScore
 		/// Gets max score from the scores of each scoreKind.
 		/// </summary>
 		(int, ScoreKind) GetMaxScore(int[] diceValues,
-		   int[] diceValueToCountMap, int diceValueBitMap, int valuesSum)
+		   int[] diceValueToCountMap, int diceValueBitMap, int[] countToDiceValueMap, int valuesSum)
 		{
 			var currentScore = (score: 0, scoreKind: ScoreKind.Chance);
 			// Loop through ScoreKind values and calculate max.
@@ -88,15 +90,15 @@ namespace rm.DiceScore
 					// current score is gte.
 					case ScoreKind.ThreeOfAKind:
 						if (currentScore.score >= GetMaxScoreForKind(scoreKind)) continue;
-						currentScore = Max(currentScore, ThreeOfAKindInner(diceValueToCountMap, valuesSum));
+						currentScore = Max(currentScore, ThreeOfAKindInner(countToDiceValueMap, valuesSum));
 						break;
 					case ScoreKind.FourOfAKind:
 						if (currentScore.score >= GetMaxScoreForKind(scoreKind)) continue;
-						currentScore = Max(currentScore, FourOfAKindInner(diceValueToCountMap, valuesSum));
+						currentScore = Max(currentScore, FourOfAKindInner(countToDiceValueMap, valuesSum));
 						break;
 					case ScoreKind.AllOfAKind:
 						if (currentScore.score >= GetMaxScoreForKind(scoreKind)) continue;
-						currentScore = Max(currentScore, AllOfAKindInner(diceValueToCountMap));
+						currentScore = Max(currentScore, AllOfAKindInner(countToDiceValueMap));
 						break;
 					case ScoreKind.NoneOfAKind:
 						if (currentScore.score >= GetMaxScoreForKind(scoreKind)) continue;
@@ -160,39 +162,39 @@ namespace rm.DiceScore
 		public (int, ScoreKind) ThreeOfAKind(int[] diceValues)
 		{
 			Validate(diceValues);
-			return ThreeOfAKindInner(ToValueCountMap(diceValues), diceValues.Sum());
+			return ThreeOfAKindInner(ToCountToDiceValueMap(ToValueCountMap(diceValues)), diceValues.Sum());
 		}
-		internal (int, ScoreKind) ThreeOfAKindInner(int[] diceValueToCountMap, int valuesSum)
+		internal (int, ScoreKind) ThreeOfAKindInner(int[] countToDiceValueMap, int valuesSum)
 		{
-			return (IsXOfAKind(diceValueToCountMap, 3) ? valuesSum : 0, ScoreKind.ThreeOfAKind);
+			return (IsXOfAKind(countToDiceValueMap, 3) ? valuesSum : 0, ScoreKind.ThreeOfAKind);
 		}
 
 		public (int, ScoreKind) FourOfAKind(int[] diceValues)
 		{
 			Validate(diceValues);
-			return FourOfAKindInner(ToValueCountMap(diceValues), diceValues.Sum());
+			return FourOfAKindInner(ToCountToDiceValueMap(ToValueCountMap(diceValues)), diceValues.Sum());
 		}
-		internal (int, ScoreKind) FourOfAKindInner(int[] diceValueToCountMap, int valuesSum)
+		internal (int, ScoreKind) FourOfAKindInner(int[] countToDiceValueMap, int valuesSum)
 		{
-			return (IsXOfAKind(diceValueToCountMap, 4) ? valuesSum : 0, ScoreKind.FourOfAKind);
+			return (IsXOfAKind(countToDiceValueMap, 4) ? valuesSum : 0, ScoreKind.FourOfAKind);
 		}
 
 		public (int, ScoreKind) AllOfAKind(int[] diceValues)
 		{
 			Validate(diceValues);
-			return AllOfAKindInner(ToValueCountMap(diceValues));
+			return AllOfAKindInner(ToCountToDiceValueMap(ToValueCountMap(diceValues)));
 		}
-		internal (int, ScoreKind) AllOfAKindInner(int[] diceValueToCountMap)
+		internal (int, ScoreKind) AllOfAKindInner(int[] countToDiceValueMap)
 		{
 			// NumberOfDice for AllOfAKind as hardcoding 5 for FiveOfAKind is ok
-			return (IsXOfAKind(diceValueToCountMap, NumberOfDice) ? 50 : 0, ScoreKind.AllOfAKind);
+			return (IsXOfAKind(countToDiceValueMap, NumberOfDice) ? 50 : 0, ScoreKind.AllOfAKind);
 		}
 
-		bool IsXOfAKind(int[] diceValueToCountMap, int valueCount)
+		bool IsXOfAKind(int[] countToDiceValueMap, int count)
 		{
-			for (int i = 0; i < diceValueToCountMap.Length; i++)
+			for (int i = count - 1; i < countToDiceValueMap.Length; i++)
 			{
-				if (diceValueToCountMap[i] >= valueCount)
+				if (countToDiceValueMap[i] > 0)
 				{
 					return true;
 				}
@@ -308,6 +310,26 @@ namespace rm.DiceScore
 				diceValueToCountMap[value - 1]++;
 			}
 			return diceValueToCountMap;
+		}
+
+		/// <summary>
+		/// Returns a count->value map given values.
+		/// </summary>
+		int[] ToCountToDiceValueMap(int[] diceValueToCountMap)
+		{
+			var countToDiceValueMap = new int[NumberOfDice];
+			for (int i = 0; i < diceValueToCountMap.Length; i++)
+			{
+				if (diceValueToCountMap[i] == 0)
+				{
+					continue;
+				}
+				// overwriting count is ok as we care for counts
+				// 2 and 3 together (full house), and 5, 4, 3 (XOfAKind).
+				// we do not care if different values have same counts.
+				countToDiceValueMap[diceValueToCountMap[i] - 1] = i + 1;
+			}
+			return countToDiceValueMap;
 		}
 
 		/// <summary>

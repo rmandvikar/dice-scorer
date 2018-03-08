@@ -24,6 +24,9 @@ namespace rm.DiceScoreTest
 			Assert.Throws<ArgumentException>(() =>
 				diceScorer.GetScore(new int[] { 1, 1, 1, 1 })
 				);
+			Assert.Throws<ArgumentException>(() =>
+				diceScorer.GetScore(new int[] { 1, 1, 1, 1, 1, 1 })
+				);
 			Assert.Throws<ArgumentOutOfRangeException>(() =>
 				diceScorer.GetScore(new int[] { 9, 1, 1, 1, 1 })
 				);
